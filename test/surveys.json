@@ -1,0 +1,20 @@
+[
+  {
+    "id": 900000000001,
+    "survey": 1,
+    "canal": "WHATSAPP",
+    "customer": {
+      "date": "2026-11-11T09:00:00.000Z",
+      "first_name": "nassim",
+      "last_name": "TEST",
+      "phone": "213658040553",
+      "email": "nassim@gmail.com",
+      "pays": "ECU",
+      "importator": "CORPMARESA",
+      "brand": "Jeep",
+      "dealer": "TEST"
+    },
+    "answers": {},
+    "sent_date": "2026-11-11T14:08:04.957Z"
+  }
+]
