@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suivi des envois WhatsApp — maquette</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface: #fcfcfb; --surface-2: #f3f2ee;
+    --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --series-ok: #2a78d6; --critical: #d03b3b; --good: #0ca30c; --warning: #fab219; --serious: #ec835a;
+    --accent: #2a78d6; --accent-ink: #ffffff;
+    --crit-bg: #fbeaea; --warn-bg: #fdf4e1; --good-bg: #e7f5e7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232321;
+      --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+      --series-ok: #3987e5; --accent: #3987e5;
+      --crit-bg: #3a1d1d; --warn-bg: #3a2f14; --good-bg: #16301a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--page); color: var(--ink); }
+  header { display: flex; align-items: center; gap: 24px; padding: 0 24px; height: 56px; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
+  header .logo { font-weight: 700; white-space: nowrap; }
+  header nav { display: flex; gap: 4px; flex: 1; }
+  header nav a { padding: 8px 12px; border-radius: 8px; color: var(--ink-2); text-decoration: none; }
+  header nav a.actif { background: var(--surface-2); color: var(--ink); font-weight: 600; }
+  header .user { display: flex; align-items: center; gap: 8px; color: var(--ink-2); white-space: nowrap; }
+  select, input, button { font: inherit; color: inherit; }
+  select, input { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; }
+  .demo { background: var(--warn-bg); color: var(--ink); text-align: center; padding: 6px; font-size: 12px; }
+  main { max-width: 1240px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 22px; margin: 0 0 16px; }
+  h2 { font-size: 15px; margin: 0 0 12px; }
+  .carte { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; overflow-x: auto; }
+  .grille { display: grid; gap: 16px; }
+  .g4 { grid-template-columns: repeat(4, 1fr); }
+  .g2 { grid-template-columns: 2fr 1fr; }
+  @media (max-width: 900px) { .g4 { grid-template-columns: repeat(2, 1fr); } .g2 { grid-template-columns: 1fr; } header nav { overflow-x: auto; } }
+  .etat { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .pastille { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; font-weight: 600; }
+  .pastille::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+  .p-ok { background: var(--good-bg); color: var(--good); }
+  .p-retard { background: var(--warn-bg); color: #b07800; }
+  .p-ko { background: var(--crit-bg); color: var(--critical); }
+  .etat dl { display: flex; gap: 28px; margin: 0; flex-wrap: wrap; }
+  .etat dt { color: var(--muted); font-size: 12px; }
+  .etat dd { margin: 0; font-weight: 600; }
+  .tuile .val { font-size: 32px; font-weight: 700; margin-top: 4px; }
+  .tuile .lib { color: var(--ink-2); }
+  .tuile .sous { color: var(--muted); font-size: 12px; }
+  .tuile.alerte { border-color: var(--critical); background: var(--crit-bg); }
+  .tuile.alerte .val { color: var(--critical); }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; color: var(--muted); font-weight: 500; font-size: 12px; padding: 8px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+  td { padding: 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--surface-2); }
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .b-ok { background: var(--good-bg); color: var(--good); }
+  .b-ko { background: var(--crit-bg); color: var(--critical); }
+  .b-fantome { background: var(--critical); color: #fff; }
+  .b-mode { background: var(--warn-bg); color: #8a5e00; }
+  .b-etape { background: var(--surface-2); color: var(--ink-2); }
+  .filtres { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+  .filtres .plein { flex: 1; min-width: 160px; }
+  .muted { color: var(--muted); }
+  .lien { color: var(--accent); cursor: pointer; text-decoration: none; }
+  .btn { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; }
+  .btn-v2 { position: relative; }
+  .btn-v2::after { content: "v2"; position: absolute; top: -8px; right: -8px; background: var(--warning); color: #0b0b0b; font-size: 10px; font-weight: 700; padding: 0 5px; border-radius: 6px; }
+  /* graphique */
+  .legende { display: flex; gap: 16px; font-size: 12px; color: var(--ink-2); margin-bottom: 8px; align-items: center; }
+  .legende span { display: inline-flex; align-items: center; gap: 6px; }
+  .legende i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .legende .bascule { margin-left: auto; }
+  svg text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .infobulle { position: fixed; pointer-events: none; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.12); display: none; z-index: 10; }
+  .cause { display: flex; gap: 16px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--grid); }
+  .cause:last-child { border-bottom: 0; }
+  .cause .nb { font-size: 22px; font-weight: 700; min-width: 48px; text-align: right; font-variant-numeric: tabular-nums; }
+  .chrono { list-style: none; margin: 0; padding: 0; }
+  .chrono li { display: flex; gap: 12px; padding: 8px 0; }
+  .chrono .point { width: 12px; height: 12px; border-radius: 50%; margin-top: 4px; flex: none; }
+  pre { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow: auto; font-size: 12px; }
+  td.detail { max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  td { white-space: nowrap; }
+  .vide { padding: 32px; text-align: center; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="demo">MAQUETTE — données fictives, aucune connexion à FANS, à Meta ni au script. Numéros toujours masqués.</div>
+<header>
+  <div class="logo">📨 Suivi WhatsApp</div>
+  <nav id="nav">
+    <a href="#/" data-p="tableau">Tableau de bord</a>
+    <a href="#/envois" data-p="envois">Envois</a>
+    <a href="#/erreurs" data-p="erreurs">Erreurs</a>
+    <a href="#/passages" data-p="passages">Passages</a>
+  </nav>
+  <div class="user">
+    <label class="muted" for="role">Rôle (démo)</label>
+    <select id="role"><option value="lecteur">Lecteur</option><option value="operateur">Opérateur (v2)</option><option value="admin">Administrateur</option></select>
+    <span>· Nassim</span>
+  </div>
+</header>
+<main id="page"></main>
+<div class="infobulle" id="bulle"></div>
+
+<script>
+// ───────────── Données fictives (déterministes) ─────────────
+let graine = 7;
+const alea = () => (graine = (graine * 16807) % 2147483647) / 2147483647;
+const choisir = (t) => t[Math.floor(alea() * t.length)];
+const MAINTENANT = new Date("2026-11-12T09:32:00");
+const CONFIGS = [
+  { pays: "ECU", importateur: "NEXUMCORP", marque: "PEUGEOT", ind: "593" },
+  { pays: "ECU", importateur: "NEXUMCORP", marque: "OPEL", ind: "593" },
+  { pays: "ECU", importateur: "CORPMARESA", marque: "Jeep", ind: "593" },
+  { pays: "ECU", importateur: "CORPMARESA", marque: "RAM ", ind: "593" },
+  { pays: "BOL", importateur: "VENSA", marque: "PEUGEOT", ind: "591" },
+  { pays: "BOL", importateur: "VENSA", marque: "CITROEN", ind: "591" },
+  { pays: "CHL", importateur: "DERCO", marque: "JEEP", ind: "56" },
+];
+const CONCESSIONS = { ECU: ["Quito Norte", "Guayaquil Centro", "Cuenca"], BOL: ["Santa Cruz", "La Paz Sur"], CHL: ["Santiago Oriente", "Viña del Mar"] };
+const ERREURS = [
+  { etape: "config", http: null, message: "Aucune configuration WhatsApp pour ECU / CORPMARESA / « RAM  » (espace en trop dans la marque)", brut: "wab introuvable", fantome: false, filtre: (c) => c.marque === "RAM " },
+  { etape: "meta", http: 400, message: "Meta a refusé : ce numéro n'a pas WhatsApp", brut: '{"error":{"code":131026,"message":"Message undeliverable"}}', fantome: true },
+  { etape: "bot_client", http: 0, message: "Le bot du client ne répond pas (délai dépassé)", brut: "fetch failed: ETIMEDOUT", fantome: false },
+  { etape: "fans", http: 500, message: "FANS n'a pas enregistré la date d'envoi", brut: "HTTP 500", fantome: false },
+  { etape: "meta", http: 401, message: "Meta a refusé : jeton d'accès expiré", brut: '{"error":{"code":190,"message":"Error validating access token"}}', fantome: true },
+];
+const ETAPES = { config: "Configuration", bot_client: "Bot du client", fans: "FANS", meta: "Meta" };
+const PRENOMS = ["Paolo", "María", "Luis", "Ana", "Jorge", "Carla", "Diego", "Sofía", "Andrés", "Valeria"];
+
+const passages = [];
+const envois = [];
+let idEnquete = 48100;
+for (let i = 0; i < 288; i++) { // 24 h de passages toutes les 5 min
+  const debut = new Date(MAINTENANT.getTime() - (i * 5 + 2) * 60000);
+  const h = debut.getHours();
+  const actif = h >= 7 && h <= 20;
+  const nb = actif ? Math.floor(alea() * 6) : (alea() < 0.1 ? 1 : 0);
+  const p = { id: `P${String(288 - i).padStart(4, "0")}`, debut, duree: 0, attente: nb + Math.floor(alea() * 3), traitees: nb, ok: 0, ko: 0, mode: i === 140 ? "dry-run" : "normal", machine: "PC-BUREAU" };
+  for (let k = 0; k < nb; k++) {
+    let c = choisir(CONFIGS);
+    const t = new Date(debut.getTime() + k * 3500 + 900);
+    let err = null;
+    if (c.marque === "RAM ") err = ERREURS[0];
+    else if (alea() < 0.09) err = choisir(ERREURS.slice(1, 4));
+    if (h === 3 && alea() < 0.8) err = ERREURS[4];
+    const e = {
+      id: idEnquete++, survey: alea() < 0.65 ? 1 : 2, date: t, passage: p.id, ...c,
+      concession: choisir(CONCESSIONS[c.pays]), prenom: choisir(PRENOMS),
+      tel: c.ind + "•••••" + String(Math.floor(alea() * 9000 + 1000)),
+      statut: p.mode === "dry-run" ? "simule" : err ? "erreur" : "ok", erreur: p.mode === "dry-run" ? null : err,
+      wamid: err ? null : "wamid.HBgM" + Math.floor(alea() * 1e9),
+    };
+    envois.push(e);
+    if (e.statut === "ok") p.ok++; else if (e.statut === "erreur") p.ko++;
+  }
+  p.duree = 1 + nb * 3.4 + alea();
+  passages.push(p);
+}
+// numéros d'enquête croissants dans le temps (les plus récentes en premier dans les listes)
+[...envois].reverse().forEach((e, i) => (e.id = 48100 + i));
+const fantomes = envois.filter((e) => e.erreur?.fantome);
+
+// ───────────── Outils ─────────────
+const $ = (s) => document.querySelector(s);
+const fmtH = (d) => d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+const fmtDH = (d) => d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }) + " " + fmtH(d);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const badgeStatut = (e) => e.statut === "ok" ? '<span class="badge b-ok">✓ Envoyée</span>'
+  : e.statut === "simule" ? '<span class="badge b-mode">Simulation</span>'
+  : e.erreur.fantome ? '<span class="badge b-fantome">⚠ Marquée envoyée, non partie</span>'
+  : '<span class="badge b-ko">✕ Erreur</span>';
+const role = () => $("#role").value;
+const boutonV2 = (libelle) => `<button class="btn btn-v2" disabled title="Prévu en v2 (rôle Opérateur)">${libelle}</button>`;
+
+// ───────────── Pages ─────────────
+function pageTableau() {
+  const jour = envois.filter((e) => e.date.toDateString() === MAINTENANT.toDateString());
+  const ok = jour.filter((e) => e.statut === "ok").length, ko = jour.filter((e) => e.statut === "erreur").length;
+  const fJour = jour.filter((e) => e.erreur?.fantome).length;
+  const dernier = passages[0];
+  return `
+  <h1>Tableau de bord</h1>
+  <div class="carte etat" style="margin-bottom:16px">
+    <span class="pastille p-ok">Script actif</span>
+    <dl>
+      <div><dt>Dernier signe de vie</dt><dd>il y a 1 min</dd></div>
+      <div><dt>Dernier passage</dt><dd>${fmtH(dernier.debut)} · ${dernier.traitees} traitée(s)</dd></div>
+      <div><dt>Prochain passage</dt><dd>${fmtH(new Date(dernier.debut.getTime() + 5 * 60000))}</dd></div>
+      <div><dt>Machine · mode</dt><dd>${dernier.machine} · normal</dd></div>
+      <div><dt>Version du script</dt><dd>autosend 1.0</dd></div>
+    </dl>
+    <span style="margin-left:auto; display:flex; gap:8px">${boutonV2("⏸ Mettre en pause")}</span>
+  </div>
+  <div class="grille g4" style="margin-bottom:16px">
+    <div class="carte tuile"><div class="lib">En attente dans FANS</div><div class="val">${dernier.attente}</div><div class="sous">au dernier passage</div></div>
+    <div class="carte tuile"><div class="lib">Envoyées aujourd'hui</div><div class="val">${ok}</div><div class="sous">depuis minuit</div></div>
+    <div class="carte tuile"><div class="lib">Erreurs aujourd'hui</div><div class="val">${ko}</div><div class="sous"><a class="lien" href="#/erreurs">voir les causes</a></div></div>
+    <div class="carte tuile ${fJour ? "alerte" : ""}"><div class="lib">⚠ Marquées envoyées, non parties</div><div class="val">${fJour}</div><div class="sous">FANS les croit envoyées : elles ne seront pas retentées</div></div>
+  </div>
+  <div class="grille g2">
+    <div class="carte">
+      <h2>Envois par heure — 24 dernières heures</h2>
+      <div class="legende"><span><i style="background:var(--series-ok)"></i>Envoyées</span><span><i style="background:var(--critical)"></i>⚠ Erreurs</span>
+        <a class="lien bascule" id="basculeTable">Voir en tableau</a></div>
+      <div id="graphique"></div>
+    </div>
+    <div class="carte">
+      <h2>Dernières erreurs</h2>
+      ${envois.filter((e) => e.statut === "erreur").slice(0, 6).map((e) => `
+        <div style="padding:8px 0; border-bottom:1px solid var(--grid); cursor:pointer" onclick="location.hash='#/enquete/${e.id}'">
+          <div style="display:flex; justify-content:space-between; gap:8px"><b>#${e.id}</b><span class="muted">${fmtH(e.date)}</span></div>
+          <div>${esc(e.erreur.message)}</div>
+          <div class="muted" style="font-size:12px">${e.pays} · ${e.importateur} · ${esc(e.marque.trim())} · étape ${ETAPES[e.erreur.etape]}</div>
+        </div>`).join("")}
+    </div>
+  </div>`;
+}
+
+function dessinerGraphique() {
+  const zone = $("#graphique"); if (!zone) return;
+  const heures = [];
+  for (let i = 23; i >= 0; i--) {
+    const fin = new Date(MAINTENANT); fin.setMinutes(0, 0, 0); fin.setHours(fin.getHours() - i + 1);
+    const debut = new Date(fin.getTime() - 3600000);
+    const dans = envois.filter((e) => e.date >= debut && e.date < fin);
+    heures.push({ debut, ok: dans.filter((e) => e.statut === "ok").length, ko: dans.filter((e) => e.statut === "erreur").length });
+  }
+  zone._heures = heures;
+  if (zone.dataset.vue === "table") {
+    zone.innerHTML = `<table><thead><tr><th>Heure</th><th class="num">Envoyées</th><th class="num">Erreurs</th></tr></thead><tbody>${heures.map((h) => `<tr><td>${fmtH(h.debut)}</td><td class="num">${h.ok}</td><td class="num">${h.ko}</td></tr>`).join("")}</tbody></table>`;
+    return;
+  }
+  const W = zone.clientWidth || 700, H = 220, m = { g: 32, d: 8, h: 8, b: 24 };
+  const max = Math.max(5, ...heures.map((h) => h.ok + h.ko));
+  const pas = Math.ceil(max / 4);
+  const yMax = pas * 4;
+  const lw = (W - m.g - m.d) / heures.length, bw = Math.max(4, lw - 4);
+  const y = (v) => m.h + (H - m.h - m.b) * (1 - v / yMax);
+  let s = `<svg width="${W}" height="${H}" role="img" aria-label="Envois et erreurs par heure">`;
+  for (let v = 0; v <= yMax; v += pas) s += `<line x1="${m.g}" x2="${W - m.d}" y1="${y(v)}" y2="${y(v)}" stroke="var(${v ? "--grid" : "--axis"})"/><text x="${m.g - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  heures.forEach((h, i) => {
+    const x = m.g + i * lw + (lw - bw) / 2;
+    const yOk = y(h.ok), yKo = y(h.ok + h.ko);
+    if (h.ok) s += `<path d="${barre(x, yOk, bw, y(0) - yOk, !h.ko)}" fill="var(--series-ok)"/>`;
+    if (h.ko) s += `<path d="${barre(x, yKo, bw, yOk - yKo - (h.ok ? 2 : 0), true)}" fill="var(--critical)"/>`;
+    if (i % 3 === 0) s += `<text x="${x + bw / 2}" y="${H - 6}" text-anchor="middle">${h.debut.getHours()}h</text>`;
+    s += `<rect x="${m.g + i * lw}" y="${m.h}" width="${lw}" height="${H - m.h - m.b}" fill="transparent" data-i="${i}"/>`;
+  });
+  zone.innerHTML = s + "</svg>";
+  const bulle = $("#bulle");
+  zone.querySelectorAll("rect[data-i]").forEach((r) => {
+    r.addEventListener("mousemove", (ev) => {
+      const h = heures[r.dataset.i];
+      bulle.innerHTML = `<b>${fmtH(h.debut)} – ${fmtH(new Date(h.debut.getTime() + 3600000))}</b><br>Envoyées : ${h.ok}<br>⚠ Erreurs : ${h.ko}`;
+      bulle.style.display = "block"; bulle.style.left = ev.clientX + 12 + "px"; bulle.style.top = ev.clientY + 12 + "px";
+      r.setAttribute("fill", "rgba(127,127,127,.08)");
+    });
+    r.addEventListener("mouseleave", () => { bulle.style.display = "none"; r.setAttribute("fill", "transparent"); });
+  });
+}
+function barre(x, y, w, h, arrondi) { // haut arrondi 4px, base droite sur l'axe
+  if (h <= 0) return "";
+  const r = arrondi ? Math.min(4, w / 2, h) : 0;
+  return `M${x},${y + h} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h} Z`;
+}
+
+const filtres = { statut: "", importateur: "", marque: "", survey: "", texte: "" };
+function pageEnvois() {
+  const liste = envois.filter((e) =>
+    (!filtres.statut || (filtres.statut === "fantome" ? e.erreur?.fantome : e.statut === filtres.statut)) &&
+    (!filtres.importateur || e.importateur === filtres.importateur) &&
+    (!filtres.marque || e.marque.trim() === filtres.marque) &&
+    (!filtres.survey || String(e.survey) === filtres.survey) &&
+    (!filtres.texte || String(e.id).includes(filtres.texte)));
+  const opt = (vals, cle, lib) => `<select data-f="${cle}"><option value="">${lib}</option>${vals.map((v) => `<option ${filtres[cle] === v ? "selected" : ""} value="${v}">${v}</option>`).join("")}</select>`;
+  return `
+  <h1>Envois</h1>
+  <div class="carte">
+    <div class="filtres">
+      <select><option>24 dernières heures</option><option>7 derniers jours</option><option>30 derniers jours</option></select>
+      <select data-f="statut"><option value="">Tous les statuts</option>
+        <option value="ok" ${filtres.statut === "ok" ? "selected" : ""}>Envoyées</option>
+        <option value="erreur" ${filtres.statut === "erreur" ? "selected" : ""}>En erreur</option>
+        <option value="fantome" ${filtres.statut === "fantome" ? "selected" : ""}>Marquées envoyées, non parties</option>
+        <option value="simule" ${filtres.statut === "simule" ? "selected" : ""}>Simulations</option></select>
+      ${opt([...new Set(CONFIGS.map((c) => c.importateur))], "importateur", "Tous les importateurs")}
+      ${opt([...new Set(CONFIGS.map((c) => c.marque.trim()))], "marque", "Toutes les marques")}
+      <select data-f="survey"><option value="">Enquêtes 1 et 2</option><option value="1" ${filtres.survey === "1" ? "selected" : ""}>1 · Après-vente</option><option value="2" ${filtres.survey === "2" ? "selected" : ""}>2 · Vente</option></select>
+      <input class="plein" data-f="texte" placeholder="N° d'enquête…" value="${esc(filtres.texte)}">
+      <button class="btn">⬇ Export CSV</button>
+    </div>
+    <div class="muted" style="margin-bottom:8px">${liste.length} enquête(s)</div>
+    <table><thead><tr><th>Heure</th><th>Enquête</th><th>Type</th><th>Pays</th><th>Importateur</th><th>Marque</th><th>Concession</th><th>Téléphone</th><th>Statut</th><th>Détail</th></tr></thead>
+    <tbody>${liste.slice(0, 80).map((e) => `<tr onclick="location.hash='#/enquete/${e.id}'">
+      <td>${fmtDH(e.date)}</td><td>#${e.id}</td><td>${e.survey === 1 ? "Après-vente" : "Vente"}</td><td>${e.pays}</td><td>${e.importateur}</td><td>${esc(e.marque.trim())}</td><td>${e.concession}</td><td class="muted">${e.tel}</td>
+      <td>${badgeStatut(e)}</td><td class="muted detail" title="${e.erreur ? esc(e.erreur.message) : ""}">${e.erreur ? esc(e.erreur.message) : e.statut === "ok" ? "Accepté par Meta" : "Rien envoyé (dry-run)"}</td></tr>`).join("")}</tbody></table>
+    ${liste.length > 80 ? `<div class="vide">… ${liste.length - 80} de plus (pagination)</div>` : ""}
+    ${liste.length === 0 ? '<div class="vide">Aucune enquête pour ces filtres.</div>' : ""}
+  </div>`;
+}
+
+function pageErreurs() {
+  const erreurs = envois.filter((e) => e.statut === "erreur");
+  const groupes = {};
+  for (const e of erreurs) (groupes[e.erreur.message] ||= { ...e.erreur, liste: [] }).liste.push(e);
+  const tri = Object.values(groupes).sort((a, b) => b.fantome - a.fantome || b.liste.length - a.liste.length);
+  const conseils = { config: "Corriger la marque / l'importateur dans FANS ou ajouter la configuration WhatsApp correspondante.", meta: "Vérifier le numéro du client ou renouveler le jeton Meta du compte.", bot_client: "Vérifier que le bot du client tourne (pm2) et répond.", fans: "Vérifier l'API FANS." };
+  return `
+  <h1>Erreurs <span class="muted" style="font-size:14px; font-weight:400">· 24 dernières heures · regroupées par cause</span></h1>
+  ${fantomes.length ? `<div class="carte" style="border-color:var(--critical); background:var(--crit-bg); margin-bottom:16px">
+    <b>⚠ ${fantomes.length} enquête(s) marquées « envoyées » dans FANS mais jamais parties.</b>
+    Le script a noté la date d'envoi dans FANS avant que Meta ne refuse le message : elles ne seront pas retentées automatiquement.
+    <a class="lien" onclick="filtres.statut='fantome'; location.hash='#/envois'">Voir la liste</a></div>` : ""}
+  <div class="carte">
+    ${tri.map((g) => `<div class="cause">
+      <div class="nb">${g.liste.length}</div>
+      <div style="flex:1">
+        <div><b>${esc(g.message)}</b> ${g.fantome ? '<span class="badge b-fantome">⚠ marquées envoyées</span>' : ""}</div>
+        <div class="muted">Étape : <span class="badge b-etape">${ETAPES[g.etape]}</span> ${g.http !== null ? "· HTTP " + g.http : ""} · dernière à ${fmtH(g.liste[0].date)} ·
+          ${[...new Set(g.liste.map((e) => e.importateur + " / " + e.marque.trim()))].join(", ")}</div>
+        <div style="margin-top:4px">💡 ${conseils[g.etape]}</div>
+        <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap">${g.liste.slice(0, 8).map((e) => `<a class="lien" href="#/enquete/${e.id}">#${e.id}</a>`).join(" ")}${g.liste.length > 8 ? " …" : ""}</div>
+      </div>
+      <div>${boutonV2("↻ Relancer")}</div>
+    </div>`).join("")}
+  </div>`;
+}
+
+function pagePassages() {
+  return `
+  <h1>Passages du script</h1>
+  <div class="carte">
+    <table><thead><tr><th>Début</th><th>Passage</th><th>Mode</th><th>Machine</th><th class="num">En attente</th><th class="num">Traitées</th><th class="num">Envoyées</th><th class="num">Erreurs</th><th class="num">Durée</th></tr></thead>
+    <tbody>${passages.slice(0, 60).map((p) => `<tr onclick="filtres.texte=''; location.hash='#/envois'">
+      <td>${fmtDH(p.debut)}</td><td class="muted">${p.id}</td><td>${p.mode === "normal" ? "normal" : '<span class="badge b-mode">' + p.mode + "</span>"}</td><td>${p.machine}</td>
+      <td class="num">${p.attente}</td><td class="num">${p.traitees}</td><td class="num">${p.ok}</td><td class="num" style="${p.ko ? "color:var(--critical); font-weight:600" : ""}">${p.ko ? "⚠ " + p.ko : 0}</td><td class="num">${p.duree.toFixed(1)} s</td></tr>`).join("")}</tbody></table>
+  </div>`;
+}
+
+function pageEnquete(id) {
+  const e = envois.find((x) => x.id === Number(id));
+  if (!e) return '<div class="vide">Enquête introuvable.</div>';
+  const etapes = ["config", "bot_client", "fans", "meta"];
+  const echec = e.erreur ? etapes.indexOf(e.erreur.etape) : 99;
+  const libelles = { config: "Configuration WhatsApp trouvée", bot_client: "Bot du client : enquête enregistrée (/sending)", fans: "FANS : date d'envoi enregistrée", meta: "Meta : message accepté" };
+  return `
+  <p><a class="lien" onclick="history.back()">← Retour</a></p>
+  <h1>Enquête #${e.id} ${badgeStatut(e)}</h1>
+  <div class="grille g2">
+    <div class="carte">
+      <h2>Déroulé de l'envoi · ${fmtDH(e.date)} · passage ${e.passage}</h2>
+      <ul class="chrono">${etapes.map((k, i) => {
+        const etat = e.statut === "simule" ? "simule" : i < echec ? "ok" : i === echec ? "ko" : "non";
+        const couleur = { ok: "var(--good)", ko: "var(--critical)", non: "var(--axis)", simule: "var(--warning)" }[etat];
+        const txt = { ok: "✓ " + libelles[k], ko: "✕ " + ETAPES[k] + " : " + esc(e.erreur.message), non: "Non exécutée", simule: "Simulée (dry-run)" }[etat];
+        return `<li><span class="point" style="background:${couleur}"></span><div>${txt}</div></li>`;
+      }).join("")}</ul>
+      ${e.erreur?.fantome ? `<div class="carte" style="background:var(--crit-bg); border-color:var(--critical); margin-top:8px">⚠ FANS indique cette enquête comme envoyée, mais le client n'a rien reçu. Elle ne sera pas retentée automatiquement.</div>` : ""}
+      ${e.erreur ? `<details style="margin-top:12px"><summary class="lien">Réponse brute</summary><pre>${esc(e.erreur.brut)}</pre></details>` : `<p class="muted">Identifiant Meta du message : ${e.wamid || "—"}</p>`}
+    </div>
+    <div class="carte">
+      <h2>Client</h2>
+      <table><tbody>
+        <tr><td class="muted">Prénom</td><td>${e.prenom}</td></tr>
+        <tr><td class="muted">Téléphone</td><td>${e.tel} <span class="muted">(masqué)</span></td></tr>
+        <tr><td class="muted">Enquête</td><td>${e.survey} · ${e.survey === 1 ? "Après-vente" : "Vente"}</td></tr>
+        <tr><td class="muted">Pays</td><td>${e.pays}</td></tr>
+        <tr><td class="muted">Importateur</td><td>${e.importateur}</td></tr>
+        <tr><td class="muted">Marque</td><td>« ${esc(e.marque)} »</td></tr>
+        <tr><td class="muted">Concession</td><td>${e.concession}</td></tr>
+      </tbody></table>
+      <h2 style="margin-top:16px">Actions</h2>
+      <div style="display:flex; gap:8px; flex-wrap:wrap">${boutonV2("↻ Relancer")} ${boutonV2("🚫 Exclure ce numéro")}</div>
+      <p class="muted" style="font-size:12px">Prévu en v2 pour le rôle Opérateur. Les actions seront exécutées par le script lui-même, jamais directement par l'interface.</p>
+    </div>
+  </div>`;
+}
+
+// ───────────── Navigation ─────────────
+function afficher() {
+  const h = location.hash.replace(/^#/, "") || "/";
+  const [, p, arg] = h.split("/");
+  const page = p === "envois" ? pageEnvois() : p === "erreurs" ? pageErreurs() : p === "passages" ? pagePassages() : p === "enquete" ? pageEnquete(arg) : pageTableau();
+  $("#page").innerHTML = page;
+  document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("actif", (a.dataset.p === "tableau" && !p) || a.dataset.p === p));
+  dessinerGraphique();
+  const b = $("#basculeTable");
+  if (b) b.onclick = () => { const z = $("#graphique"); z.dataset.vue = z.dataset.vue === "table" ? "" : "table"; b.textContent = z.dataset.vue ? "Voir le graphique" : "Voir en tableau"; dessinerGraphique(); };
+  document.querySelectorAll("[data-f]").forEach((el) => el.addEventListener(el.tagName === "INPUT" ? "input" : "change", () => {
+    filtres[el.dataset.f] = el.value; const pos = el.selectionStart; afficher();
+    const n = document.querySelector(`[data-f="${el.dataset.f}"]`); if (el.tagName === "INPUT") { n.focus(); n.setSelectionRange(pos, pos); }
+  }));
+  window.scrollTo(0, 0);
+}
+$("#role").addEventListener("change", () => alert("En v1, tous les rôles voient la même chose (lecture seule). Les boutons marqués « v2 » s'activeront pour le rôle Opérateur."));
+window.addEventListener("hashchange", afficher);
+window.addEventListener("resize", dessinerGraphique);
+afficher();
+</script>
+</body>
+</html>

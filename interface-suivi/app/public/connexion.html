@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connexion — Suivi WhatsApp</title>
+<link rel="stylesheet" href="/statique/style.css">
+</head>
+<body>
+<form class="carte connexion" id="formulaire">
+  <h1>📨 Suivi WhatsApp</h1>
+  <p class="muted">Suivi de l'envoi automatique des enquêtes. Accès réservé à l'équipe Satisfactive.</p>
+  <label for="email">E-mail</label>
+  <input id="email" type="email" autocomplete="username" required autofocus>
+  <label for="mdp">Mot de passe</label>
+  <input id="mdp" type="password" autocomplete="current-password" required>
+  <button type="submit">Se connecter</button>
+  <div class="erreur" id="erreur" role="alert"></div>
+</form>
+<script src="/statique/connexion.js"></script>
+</body>
+</html>

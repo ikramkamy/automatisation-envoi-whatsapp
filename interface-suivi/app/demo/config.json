@@ -1,0 +1,7 @@
+{
+  "fichier_journal": "autosend.log",
+  "fichier_comptes": "comptes.json",
+  "port": 8780,
+  "hote": "127.0.0.1",
+  "cookie_securise": false
+}

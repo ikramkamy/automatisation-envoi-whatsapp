@@ -1,0 +1,6 @@
+app/config.json
+app/comptes.json
+app/demo/comptes.json
+app/demo/compte-demo.txt
+*.log
+!app/demo/autosend.log

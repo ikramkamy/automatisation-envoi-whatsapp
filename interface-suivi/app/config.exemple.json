@@ -1,0 +1,8 @@
+{
+  "fichier_journal": "C:/chemin/vers/autosend.log",
+  "fichier_comptes": "comptes.json",
+  "port": 8780,
+  "hote": "127.0.0.1",
+  "cookie_securise": false,
+  "seuils": { "intervalleMinutes": 5, "retardMinutes": 10, "silenceMinutes": 15 }
+}
